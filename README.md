@@ -34,16 +34,17 @@ This personal project extracts track data, transforms it into a clean format, an
 2. **create virtual environemtn**
 
 3. **Install dependencies**
+    ```bash
     pip install -r requirements.txt
 
 4. **Set environment variables**
     create .env and add your Spotify API and MySQL credentials
     
-    CLIENT_ID=example
-    CLIENT_SECRET=example
-    MYSQL_HOST=example
-    MYSQL_USER=example
-    MYSQL_PASSWORD=example
+    CLIENT_ID=example  
+    CLIENT_SECRET=example  
+    MYSQL_HOST=example  
+    MYSQL_USER=example  
+    MYSQL_PASSWORD=example  
 
 ## Usage
 Run the ETL pipeling:
@@ -52,10 +53,10 @@ python etl.py
 ```
 
 The script will:
--Extract data from Spotify
--Transform and clean it
--Load it into the configured MySQL database
+-Extract data from Spotify  
+-Transform and clean it  
+-Load it into the configured MySQL database  
 
 ## Notes
--Secrets (like .env) are ignored from version control.
--For visualization, connect your BI tool directly to the spotify_db database.
+-Secrets (like .env) are ignored from version control.  
+-For visualization, connect your BI tool directly to the spotify_db database.  

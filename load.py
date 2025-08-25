@@ -88,7 +88,9 @@ def load_dataset(df, logger=None):
             popularity INT,
             cover_image_url TEXT,
             album_type VARCHAR(50),
-            total_streams BIGINT
+            total_streams BIGINT,
+            danceability INT,
+            tempo FLOAT
         )
         """
         try:
@@ -114,8 +116,8 @@ def load_dataset(df, logger=None):
         insert_query = """
         INSERT INTO spotify_tracks 
         (id, track_name, artist_name, artist_count, release_date, duration_min, 
-         popularity, cover_image_url, album_type, total_streams)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+         popularity, cover_image_url, album_type, total_streams, danceability, tempo)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
         
         # Convert DataFrame to list of tuples for batch insert
