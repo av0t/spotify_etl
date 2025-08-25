@@ -7,12 +7,13 @@ from mysql.connector import Error
 import os
 from dotenv import load_dotenv
 
-def load_dataset(df):
+def load_dataset(df, logger=None):
     """
     Load pandas DataFrame to MySQL database
     
     Args:
         df: Transformed pandas DataFrame
+        logger: Logger instance for logging
     
     Returns:
         Boolean indicating success
@@ -20,6 +21,8 @@ def load_dataset(df):
     
     if df.empty:
         print("Cannot load empty dataset")
+        if logger:
+            logger.error("Cannot load empty dataset")
         return False
     
     # Load environment variables
@@ -47,6 +50,8 @@ def load_dataset(df):
     
     try:
         print("=== Loading to MySQL Database ===")
+        if logger:
+            logger.info("=== Loading to MySQL Database ===")
         
         # Connect to MySQL server
         connection = mysql.connector.connect(**config)
@@ -56,16 +61,22 @@ def load_dataset(df):
         try:
             cursor.execute("CREATE DATABASE spotify_db")
             print("✓ Database 'spotify_db' created")
+            if logger:
+                logger.info("Database 'spotify_db' created")
         except mysql.connector.Error as e:
             if e.errno == 1007:  # Database already exists
                 print("✓ Database 'spotify_db' already exists")
+                if logger:
+                    logger.info("Database 'spotify_db' already exists")
             else:
                 raise e  # Re-raise if it's a different error
             
         cursor.execute("USE spotify_db")
         print("✓ Database 'spotify_db' ready")
+        if logger:
+            logger.info("Database 'spotify_db' ready")
         
-        # Create table
+        # Create table with explicit error handling
         create_table_query = """
         CREATE TABLE spotify_tracks (
             id VARCHAR(255) PRIMARY KEY,
@@ -83,15 +94,21 @@ def load_dataset(df):
         try:
             cursor.execute(create_table_query)
             print("✓ Table 'spotify_tracks' created")
+            if logger:
+                logger.info("Table 'spotify_tracks' created")
         except mysql.connector.Error as e:
             if e.errno == 1050:  # Table already exists
                 print("✓ Table 'spotify_tracks' already exists")
+                if logger:
+                    logger.info("Table 'spotify_tracks' already exists")
             else:
                 raise e  # Re-raise if it's a different error
         
         # Clear existing data (optional - remove if you want to append)
         cursor.execute("TRUNCATE TABLE spotify_tracks")
         print("✓ Cleared existing data")
+        if logger:
+            logger.info("Cleared existing data")
         
         # Insert data using batch insert (more efficient than row by row)
         insert_query = """
@@ -110,16 +127,22 @@ def load_dataset(df):
         connection.commit()
         
         print(f"✓ Successfully loaded {cursor.rowcount} records")
+        if logger:
+            logger.info(f"Successfully loaded {cursor.rowcount} records")
         
         # Quick verification
         cursor.execute("SELECT COUNT(*) FROM spotify_tracks")
         count = cursor.fetchone()[0]
         print(f"✓ Verification: {count} records in database")
+        if logger:
+            logger.info(f"Verification: {count} records in database")
         
         return True
         
     except Error as e:
         print(f"Error loading data to MySQL: {e}")
+        if logger:
+            logger.error(f"Error loading data to MySQL: {e}")
         if connection:
             connection.rollback()
         return False
@@ -131,6 +154,8 @@ def load_dataset(df):
         if connection and connection.is_connected():
             connection.close()
             print("✓ Database connection closed")
+            if logger:
+                logger.info("Database connection closed")
 
 def query_sample_data(limit=5):
     """

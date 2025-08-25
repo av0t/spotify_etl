@@ -13,6 +13,9 @@ env/
 .vscode/
 .idea/
 
+# Logs
+logs/
+
 # Jupyter
 .ipynb_checkpoints/
 extract_test.ipynb

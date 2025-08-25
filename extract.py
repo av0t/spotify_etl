@@ -11,7 +11,7 @@ def setup_spotify_client(client_id, client_secret):
     )
     return spotipy.Spotify(client_credentials_manager=client_credentials_manager)
 
-def get_tracks_from_search(sp, year=2023, tracks_per_term=200):
+def get_tracks_from_search(sp, year=2023, tracks_per_term=200, logger=None):
     """Get tracks using search only"""
     all_tracks = []
     
@@ -52,9 +52,13 @@ def get_tracks_from_search(sp, year=2023, tracks_per_term=200):
             
         except Exception as e:
             print(f"Error searching for {term}: {e}")
+            if logger:
+                logger.error(f"Error searching for {term}: {e}")
             continue
     
     print(f"Total tracks found across all searches: {len(all_tracks)}")
+    if logger:
+        logger.info(f"Total tracks found across all searches: {len(all_tracks)}")
     
     # Remove duplicates based on track ID
     unique_tracks = {}
@@ -74,7 +78,7 @@ def get_cover_image_url(track):
         if track['album']['images'] and len(track['album']['images']) > 0:
             return track['album']['images'][0]['url']
         else:
-            # Fallback to default image
+            # Fallback to default image (tame impala)
             return 'https://i.scdn.co/image/ab67616d0000b2739e1cfc756886ac782e363d79'
     except:
         return 'https://i.scdn.co/image/ab67616d0000b2739e1cfc756886ac782e363d79'
@@ -132,21 +136,27 @@ def extract_track_info(track):
         print(f"Error extracting data for track {track.get('name', 'Unknown')}: {e}")
         return None
 
-def create_spotify_dataset(client_id, client_secret, year=2023, tracks_per_term=200):
+def create_spotify_dataset(client_id, client_secret, year=2023, tracks_per_term=200, logger=None):
     """Main function to create the dataset"""
     print(f"Starting extraction of tracks from {year}...")
     print(f"Target: {tracks_per_term} tracks per search term")
+    
+    if logger:
+        logger.info(f"Starting extraction of tracks from {year}...")
+        logger.info(f"Target: {tracks_per_term} tracks per search term")
     
     # Setup Spotify client
     sp = setup_spotify_client(client_id, client_secret)
     
     # Get tracks using search only
     print(f"Searching for tracks from {year}...")
-    tracks = get_tracks_from_search(sp, year=year, tracks_per_term=tracks_per_term)
+    tracks = get_tracks_from_search(sp, year=year, tracks_per_term=tracks_per_term, logger=logger)
     print(f"Found {len(tracks)} unique tracks from {year}")
     
     if not tracks:
         print("No tracks found. Please check your API credentials and connection.")
+        if logger:
+            logger.error("No tracks found. Please check your API credentials and connection.")
         return pd.DataFrame()
     
     # Extract data for each track
@@ -164,4 +174,3 @@ def create_spotify_dataset(client_id, client_secret, year=2023, tracks_per_term=
     print(f"Dataset created with {len(df)} tracks")
     
     return df
-
