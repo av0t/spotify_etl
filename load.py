@@ -52,14 +52,22 @@ def load_dataset(df):
         connection = mysql.connector.connect(**config)
         cursor = connection.cursor()
         
-        # Create database if not exists
-        cursor.execute("CREATE DATABASE IF NOT EXISTS spotify_db")
+        # Check if database exists and create if it doesn't
+        try:
+            cursor.execute("CREATE DATABASE spotify_db")
+            print("✓ Database 'spotify_db' created")
+        except mysql.connector.Error as e:
+            if e.errno == 1007:  # Database already exists
+                print("✓ Database 'spotify_db' already exists")
+            else:
+                raise e  # Re-raise if it's a different error
+            
         cursor.execute("USE spotify_db")
         print("✓ Database 'spotify_db' ready")
         
         # Create table
         create_table_query = """
-        CREATE TABLE IF NOT EXISTS spotify_tracks (
+        CREATE TABLE spotify_tracks (
             id VARCHAR(255) PRIMARY KEY,
             track_name TEXT,
             artist_name TEXT,
@@ -72,8 +80,14 @@ def load_dataset(df):
             total_streams BIGINT
         )
         """
-        cursor.execute(create_table_query)
-        print("✓ Table 'spotify_tracks' ready")
+        try:
+            cursor.execute(create_table_query)
+            print("✓ Table 'spotify_tracks' created")
+        except mysql.connector.Error as e:
+            if e.errno == 1050:  # Table already exists
+                print("✓ Table 'spotify_tracks' already exists")
+            else:
+                raise e  # Re-raise if it's a different error
         
         # Clear existing data (optional - remove if you want to append)
         cursor.execute("TRUNCATE TABLE spotify_tracks")

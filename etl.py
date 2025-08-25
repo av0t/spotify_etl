@@ -42,7 +42,7 @@ def main():
         print(f"\nDataset shape: {df.shape}")
         
         # Save to CSV with year in filename
-        filename = f'spotify_tracks_{YEAR}.csv'
+        filename = f'csv/spotify_tracks_{YEAR}.csv'
         df.to_csv(filename, index=False)
         print(f"\nDataset saved to '{filename}'")
         
