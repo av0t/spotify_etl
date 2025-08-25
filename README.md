@@ -47,7 +47,9 @@ This personal project extracts track data, transforms it into a clean format, an
 
 ## Usage
 Run the ETL pipeling:
+```bash
 python etl.py
+```
 
 The script will:
 -Extract data from Spotify
