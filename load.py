@@ -113,15 +113,17 @@ def load_dataset(df, logger=None):
         if logger:
             logger.info(f"Current records in database: {count_before}")
         
-        # Insert data using INSERT IGNORE for incremental loading
+
         # Insert data using batch insert (more efficient than row by row)
+        # Insert data using ON DUPLICATE KEY UPDATE for incremental loading (effectively ignoring duplicate key rows)
         insert_query = """
-        INSERT IGNORE INTO tracks 
+        INSERT INTO tracks 
         (id, track_name, artist_name, artist_count, release_date, duration_min, 
          popularity, cover_image_url, album_type, total_streams, danceability, tempo)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ON DUPLICATE KEY UPDATE id=id
         """
-        
+
         # Convert DataFrame to list of tuples for batch insert
         data_tuples = [tuple(row) for row in df_copy.values]
         
@@ -143,7 +145,7 @@ def load_dataset(df, logger=None):
         if logger:
             logger.info(f"Total records in database: {count_after}")
         
-        return True
+        return True, count_after - count_before  # Return success and count of new records
         
     except Error as e:
         print(f"Error loading data to MySQL: {e}")
@@ -151,7 +153,7 @@ def load_dataset(df, logger=None):
             logger.error(f"Error loading data to MySQL: {e}")
         if connection:
             connection.rollback()
-        return False
+        return False, 0
         
     finally:
         # Ensure connections are properly closed
@@ -162,6 +164,97 @@ def load_dataset(df, logger=None):
             print("✓ Database connection closed")
             if logger:
                 logger.info("Database connection closed")
+
+# For logging ETL run info to log table in database
+def log_etl_run(run_data, logger=None):
+    """
+    Log ETL run information to the database
+    
+    Args:
+        connection: MySQL connection object
+        run_data: Dictionary containing log data
+        logger: Logger instance for logging
+    """
+
+    # Database connection parameters
+    config = {
+        'user': os.getenv('MYSQL_USER', 'root'),
+        'password': os.getenv('MYSQL_PASSWORD'),
+        'host': os.getenv('MYSQL_HOST', 'localhost'),
+        'raise_on_warnings': True
+    }
+    
+    # Get password if not in environment
+    if not config['password']:
+        config['password'] = input("Enter MySQL root password: ")
+    
+    connection = None
+    cursor = None
+    try:
+        connection = mysql.connector.connect(**config)
+        cursor = connection.cursor()
+        
+        cursor.execute("USE spotify_db")
+
+        # Check if etl_log table exists, create if it doesn't
+        create_log_query="""
+            CREATE TABLE etl_log (
+                log_id INT AUTO_INCREMENT PRIMARY KEY,
+                run_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                status ENUM('success', 'failure') NOT NULL,
+                extract_status ENUM('success', 'failure'),
+                transform_status ENUM('success', 'failure'),
+                load_status ENUM('success', 'failure'),
+                tracks_extracted INT,
+                tracks_loaded INT,
+                error_message TEXT,
+                duration_seconds FLOAT
+            )
+        """
+        try:
+            cursor.execute(create_log_query)
+        except mysql.connector.Error as e:
+            if e.errno == 1050:  # Table already exists
+                if logger:
+                    logger.info("Table 'etl_log' already exists")
+            else:
+                raise e  # Re-raise if it's a different error
+        
+        # Insert log record
+        insert_query = """
+            INSERT INTO etl_log 
+            (status, extract_status, transform_status, load_status, 
+             tracks_extracted, tracks_loaded, error_message, duration_seconds)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """
+        
+        cursor.execute(insert_query, (
+            run_data['status'],
+            run_data['extract_status'],
+            run_data['transform_status'],
+            run_data['load_status'],
+            run_data['tracks_extracted'],
+            run_data['tracks_loaded'],
+            run_data['error_message'],
+            run_data['duration_seconds']
+        ))
+        
+        connection.commit()
+        if logger:
+            logger.info("ETL run logged successfully in database\n")
+            
+    except Error as e:
+        if logger:
+            logger.error(f"Error logging ETL run to database: {e}\n")
+        if connection:
+            connection.rollback()
+        raise e
+    
+    finally:
+        if cursor:
+            cursor.close()
+        if connection:
+            connection.close()
 
 def query_sample_data(limit=5):
     """

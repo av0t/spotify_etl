@@ -34,8 +34,16 @@ This personal project extracts track data, transforms it into a clean format, an
 2. **create virtual environemtn**
 
 3. **Install dependencies**
+    - If you are using pip:
     ```bash
     pip install -r requirements.txt
+    ```
+
+    - If you are using conda:
+    ```bash
+    conda env create -f environment.yml
+    ```
+
 
 4. **Set environment variables**
     create .env and add your Spotify API and MySQL credentials
