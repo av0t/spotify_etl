@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 def load_dataset(df, logger=None):
     """
-    Load pandas DataFrame to MySQL database
+    Load pandas DataFrame to MySQL database using incremental loading
     
     Args:
         df: Transformed pandas DataFrame
@@ -78,7 +78,7 @@ def load_dataset(df, logger=None):
         
         # Create table with explicit error handling
         create_table_query = """
-        CREATE TABLE spotify_tracks (
+        CREATE TABLE tracks (
             id VARCHAR(255) PRIMARY KEY,
             track_name TEXT,
             artist_name TEXT,
@@ -95,26 +95,28 @@ def load_dataset(df, logger=None):
         """
         try:
             cursor.execute(create_table_query)
-            print("✓ Table 'spotify_tracks' created")
+            print("✓ Table 'tracks' created")
             if logger:
-                logger.info("Table 'spotify_tracks' created")
+                logger.info("Table 'tracks' created")
         except mysql.connector.Error as e:
             if e.errno == 1050:  # Table already exists
-                print("✓ Table 'spotify_tracks' already exists")
+                print("✓ Table 'tracks' already exists")
                 if logger:
-                    logger.info("Table 'spotify_tracks' already exists")
+                    logger.info("Table 'tracks' already exists")
             else:
                 raise e  # Re-raise if it's a different error
         
-        # Clear existing data (optional - remove if you want to append)
-        cursor.execute("TRUNCATE TABLE spotify_tracks")
-        print("✓ Cleared existing data")
+        # Get current count before insertion for comparison
+        cursor.execute("SELECT COUNT(*) FROM tracks")
+        count_before = cursor.fetchone()[0]
+        print(f"✓ Current records in database: {count_before}")
         if logger:
-            logger.info("Cleared existing data")
+            logger.info(f"Current records in database: {count_before}")
         
+        # Insert data using INSERT IGNORE for incremental loading
         # Insert data using batch insert (more efficient than row by row)
         insert_query = """
-        INSERT INTO spotify_tracks 
+        INSERT IGNORE INTO tracks 
         (id, track_name, artist_name, artist_count, release_date, duration_min, 
          popularity, cover_image_url, album_type, total_streams, danceability, tempo)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -128,16 +130,18 @@ def load_dataset(df, logger=None):
         
         connection.commit()
         
-        print(f"✓ Successfully loaded {cursor.rowcount} records")
+        print(f"✓ Attempted to insert {len(data_tuples)} records")
+        print(f"✓ Actually inserted {cursor.rowcount} unique new records")
         if logger:
-            logger.info(f"Successfully loaded {cursor.rowcount} records")
+            logger.info(f"Attempted to insert {len(data_tuples)} records")
+            logger.info(f"Actually inserted {cursor.rowcount} unique new records")
         
         # Quick verification
-        cursor.execute("SELECT COUNT(*) FROM spotify_tracks")
-        count = cursor.fetchone()[0]
-        print(f"✓ Verification: {count} records in database")
+        cursor.execute("SELECT COUNT(*) FROM tracks")
+        count_after = cursor.fetchone()[0]
+        print(f"✓ Total records in database: {count_after}")
         if logger:
-            logger.info(f"Verification: {count} records in database")
+            logger.info(f"Total records in database: {count_after}")
         
         return True
         
@@ -188,7 +192,7 @@ def query_sample_data(limit=5):
         
         cursor.execute(f"""
         SELECT id, track_name, artist_name, popularity, total_streams 
-        FROM spotify_tracks 
+        FROM tracks 
         LIMIT {limit}
         """)
         records = cursor.fetchall()

@@ -28,8 +28,8 @@ def main():
         raise RuntimeError("Missing CLIENT_ID or CLIENT_SECRET in environment (.env file)")
     
     # Configuration
-    YEAR = 2024  # Change this to extract from different years
-    TRACKS_PER_TERM = 200  # Number of tracks to get from each search term
+    YEAR = 2023  # Change this to extract from different years
+    TRACKS_PER_TERM = 300  # Number of tracks to get from each search term
     
     # EXTRACT
     # Create dataset
@@ -61,11 +61,11 @@ def main():
     success = load_dataset(df, logger=logger)
     if success:
         print("✓ ETL process completed successfully!")
-        logger.info("ETL process completed successfully!")
+        logger.info("ETL process completed successfully!\n")
     
     else:
         print("✗ ETL process completed with errors in load phase")
-        logger.error("ETL process completed with errors in load phase")
+        logger.error("ETL process completed with errors in load phase\n")
 
 if __name__ == "__main__":
     main()

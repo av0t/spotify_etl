@@ -53,10 +53,10 @@ python etl.py
 ```
 
 The script will:
--Extract data from Spotify  
--Transform and clean it  
--Load it into the configured MySQL database  
+- Extract data from Spotify  
+- Transform and clean it  
+- Load it into the configured MySQL database  
 
 ## Notes
--Secrets (like .env) are ignored from version control.  
--For visualization, connect your BI tool directly to the spotify_db database.  
+- Secrets (like .env) are ignored from version control.  
+- For visualization, connect your BI tool directly to the spotify_db database.  
